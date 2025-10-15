@@ -44,10 +44,6 @@
             color: var(--text-color);
             height: 100vh;
             overflow: hidden;
-        }
-
-        /* Запрет контекстного меню и F12 */
-        body {
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -542,6 +538,36 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Адаптивность для мобильных */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .chat-area {
+                width: 100%;
+            }
+            
+            .auth-box {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+            
+            .modal-content {
+                margin: 20px;
+                width: calc(100% - 40px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -756,6 +782,20 @@
         </div>
     </div>
 
+    <div class="modal" id="createGroupModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Создать группу</h3>
+                <button class="modal-close" onclick="hideModal('createGroupModal')">×</button>
+            </div>
+            <div class="form-group">
+                <input type="text" class="form-input" id="groupName" placeholder="Название группы">
+            </div>
+            <button class="btn" onclick="createGroup()">Создать группу</button>
+            <button class="btn btn-secondary" onclick="hideModal('createGroupModal')">Отмена</button>
+        </div>
+    </div>
+
     <script>
         // Запрет F12 и контекстного меню
         document.addEventListener('keydown', function(e) {
@@ -789,17 +829,46 @@
         try {
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
+            console.log('Firebase инициализирован');
         } catch (error) {
             console.error('Firebase error:', error);
+            showNotification('Ошибка подключения к базе данных');
+        }
+
+        // Улучшенная проверка localStorage
+        function getStorageItem(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                console.error('LocalStorage error:', e);
+                return null;
+            }
+        }
+
+        function setStorageItem(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                console.error('LocalStorage error:', e);
+            }
         }
 
         // Проверка авторизации при загрузке
         window.addEventListener('load', function() {
-            const savedUser = localStorage.getItem('parallaxchat_user');
+            console.log('Страница загружена, проверяем авторизацию...');
+            const savedUser = getStorageItem('parallaxchat_user');
             if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp();
-                listenForNotifications();
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    console.log('Найден сохраненный пользователь:', currentUser.username);
+                    showApp();
+                    listenForNotifications();
+                } catch (e) {
+                    console.error('Ошибка парсинга пользователя:', e);
+                    setStorageItem('parallaxchat_user', null);
+                }
+            } else {
+                console.log('Сохраненный пользователь не найден');
             }
         });
 
@@ -816,6 +885,7 @@
 
         // Переключение вкладок аутентификации
         function showAuthTab(tabName) {
+            console.log('Переключение на вкладку:', tabName);
             document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
             document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
             
@@ -824,14 +894,19 @@
             updateCaptchas();
         }
 
-        // Регистрация
+        // Улучшенная регистрация с обработкой ошибок
         function register() {
+            console.log('Начало регистрации...');
+            
             const username = document.getElementById('regUsername').value.trim();
             const password = document.getElementById('regPassword').value;
             const passwordConfirm = document.getElementById('regPasswordConfirm').value;
             const captchaInput = document.getElementById('regCaptchaInput').value;
             const captchaCode = document.getElementById('regCaptchaCode').textContent;
 
+            console.log('Данные формы:', { username, password, captchaInput, captchaCode });
+
+            // Валидация
             if (username.length < 4 || username.length > 12) {
                 showNotification('Никнейм должен быть от 4 до 12 символов');
                 return;
@@ -850,10 +925,13 @@
                 return;
             }
 
+            console.log('Проверяем существование пользователя...');
+            
             database.ref('users/' + username).once('value').then(snapshot => {
                 if (snapshot.exists()) {
                     showNotification('Никнейм занят');
                 } else {
+                    console.log('Создаем нового пользователя...');
                     const backupCodes = generateBackupCodes();
                     const userData = {
                         password: password,
@@ -863,20 +941,36 @@
                     };
                     
                     database.ref('users/' + username).set(userData).then(() => {
+                        console.log('Пользователь создан в Firebase');
+                        
                         currentUser = { 
                             username: username, 
                             backupCodes: backupCodes,
                             about: ''
                         };
-                        localStorage.setItem('parallaxchat_user', JSON.stringify(currentUser));
+                        
+                        // Сохраняем в localStorage
+                        setStorageItem('parallaxchat_user', JSON.stringify(currentUser));
+                        console.log('Пользователь сохранен в localStorage');
+                        
+                        // Показываем резервные коды
                         showBackupCodes(backupCodes);
+                        
+                    }).catch(error => {
+                        console.error('Ошибка создания пользователя:', error);
+                        showNotification('Ошибка регистрации: ' + error.message);
                     });
                 }
+            }).catch(error => {
+                console.error('Ошибка проверки пользователя:', error);
+                showNotification('Ошибка подключения к базе данных');
             });
         }
 
-        // Вход
+        // Улучшенный вход
         function login() {
+            console.log('Попытка входа...');
+            
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
             const captchaInput = document.getElementById('loginCaptchaInput').value;
@@ -892,6 +986,8 @@
                 return;
             }
 
+            console.log('Проверяем пользователя в Firebase...');
+            
             database.ref('users/' + username).once('value').then(snapshot => {
                 if (!snapshot.exists()) {
                     showNotification('Пользователь не найден');
@@ -904,15 +1000,25 @@
                     return;
                 }
 
+                console.log('Успешная аутентификация');
+                
                 currentUser = {
                     username: username,
                     backupCodes: userData.backupCodes || [],
                     about: userData.about || ''
                 };
-                localStorage.setItem('parallaxchat_user', JSON.stringify(currentUser));
+                
+                // Сохраняем в localStorage
+                setStorageItem('parallaxchat_user', JSON.stringify(currentUser));
+                console.log('Пользователь сохранен в localStorage');
+                
                 showApp();
                 showNotification('Успешный вход!');
                 listenForNotifications();
+                
+            }).catch(error => {
+                console.error('Ошибка входа:', error);
+                showNotification('Ошибка подключения к базе данных');
             });
         }
 
@@ -966,21 +1072,96 @@
 
         // Показать резервные коды
         function showBackupCodes(codes) {
-            alert(`Сохраните резервные коды:\n${codes.join('\n')}`);
-            showApp();
+            console.log('Показываем резервные коды...');
+            const codesText = `Сохраните резервные коды:\n\n${codes.join('\n')}\n\nЭти коды понадобятся для восстановления доступа!`;
+            
+            // Используем confirm для мобильных устройств
+            if (confirm(codesText)) {
+                showApp();
+            } else {
+                showApp();
+            }
         }
 
         // Показать приложение
         function showApp() {
+            console.log('Показываем основное приложение...');
             document.getElementById('authContainer').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
-            loadContacts();
+            
+            // Небольшая задержка для гарантии отображения
+            setTimeout(() => {
+                loadContacts();
+                console.log('Приложение полностью загружено');
+            }, 100);
+        }
+
+        // Улучшенные уведомления
+        function showNotification(message) {
+            console.log('Показываем уведомление:', message);
+            
+            // Создаем уведомление в DOM
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                background: var(--sidebar-bg);
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                z-index: 4000;
+                animation: fadeIn 0.3s ease;
+                border-left: 4px solid var(--accent-color);
+                max-width: 300px;
+                color: var(--text-color);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Удаляем через 3 секунды
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 3000);
+
+            // Пытаемся показать браузерное уведомление
+            showBrowserNotification(message);
+        }
+
+        // Браузерные уведомления
+        function showBrowserNotification(message) {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification('ParallaxChat', {
+                        body: message,
+                        icon: 'icon.png'
+                    });
+                } else if (Notification.permission === 'default') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification('ParallaxChat', {
+                                body: message,
+                                icon: 'icon.png'
+                            });
+                        }
+                    });
+                }
+            }
         }
 
         // Загрузка контактов
         function loadContacts() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                console.error('Нет текущего пользователя для загрузки контактов');
+                return;
+            }
 
+            console.log('Загружаем контакты для:', currentUser.username);
+            
             // Загрузка реальных контактов из Firebase
             database.ref('contacts/' + currentUser.username).on('value', (snapshot) => {
                 const contacts = [];
@@ -990,6 +1171,7 @@
                     contacts.push(contact);
                 });
 
+                console.log('Загружено контактов:', contacts.length);
                 displayContacts(contacts);
             });
 
@@ -1001,13 +1183,18 @@
                     chat.id = childSnapshot.key;
                     chats.push(chat);
                 });
-                // Здесь можно обновить список чатов
+                console.log('Загружено чатов:', chats.length);
             });
         }
 
         // Отображение контактов
         function displayContacts(contacts) {
             const contactsList = document.getElementById('contactsList');
+            if (!contactsList) {
+                console.error('Элемент contactsList не найден');
+                return;
+            }
+            
             contactsList.innerHTML = '';
 
             if (contacts.length === 0) {
@@ -1169,6 +1356,10 @@
             showModal('myProfileModal');
         }
 
+        function showCreateGroupModal() {
+            showModal('createGroupModal');
+        }
+
         function showUserProfile(username) {
             database.ref('users/' + username).once('value').then(snapshot => {
                 if (snapshot.exists()) {
@@ -1228,6 +1419,31 @@
                 localStorage.setItem('parallaxchat_user', JSON.stringify(currentUser));
                 showNotification('Профиль обновлен');
                 hideModal('myProfileModal');
+            });
+        }
+
+        // Создание группы
+        function createGroup() {
+            const groupName = document.getElementById('groupName').value.trim();
+            
+            if (!groupName) {
+                showNotification('Введите название группы');
+                return;
+            }
+
+            const groupId = 'group_' + Date.now();
+            const groupData = {
+                name: groupName,
+                createdBy: currentUser.username,
+                createdAt: Date.now(),
+                participants: {
+                    [currentUser.username]: true
+                }
+            };
+            
+            database.ref('groups/' + groupId).set(groupData).then(() => {
+                showNotification('Группа создана');
+                hideModal('createGroupModal');
             });
         }
 
@@ -1326,26 +1542,6 @@
             document.getElementById('themeSwitch').checked = true;
         }
 
-        // Уведомления
-        function showNotification(message) {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-
-            // Android уведомление
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('ParallaxChat', {
-                    body: message,
-                    icon: 'icon.png'
-                });
-            }
-        }
-
         // Отправка уведомления пользователю
         function sendNotification(toUsername, message) {
             // Здесь будет логика отправки push-уведомлений
@@ -1379,8 +1575,18 @@
             });
         }
 
-        // Инициализация
-        updateCaptchas();
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM загружен, инициализируем капчу...');
+            updateCaptchas();
+        });
+
+        // Добавляем обработчик ошибок
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            showNotification('Произошла ошибка: ' + e.message);
+        });
+
     </script>
 </body>
 </html>
