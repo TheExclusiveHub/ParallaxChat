@@ -3,181 +3,541 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ParallaxChat</title>
+    <title>ParallaxChat - Secure Messenger</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0; 
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-        .header {
-            text-align: center;
-            color: white;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            padding: 30px;
-        }
-        .header h1 {
+        * {
             margin: 0;
-            font-size: 28px;
+            padding: 0;
+            box-sizing: border-box;
         }
-        .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.9;
-        }
-        .user-info {
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
-            gap: 10px;
             align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        .user-info input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); }
+            to { transform: translateX(-100%); }
+        }
+
+        .auth-section {
+            padding: 40px 30px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .auth-tab {
             flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: none;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #6c757d;
         }
-        .user-info button {
-            padding: 8px 16px;
-            background: #4facfe;
+
+        .auth-tab.active {
+            background: white;
+            color: #4facfe;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .auth-form {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4facfe;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .captcha-container {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .captcha-code {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+
+        .captcha-input {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
         }
-        .messages {
-            height: 400px;
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+        }
+
+        .link {
+            color: #4facfe;
+            text-decoration: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .link:hover {
+            color: #3a9df5;
+            text-decoration: underline;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-3 {
+            margin-top: 15px;
+        }
+
+        /* Чат стили */
+        .chat-container {
+            display: none;
+            height: 100vh;
+            background: white;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .user-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .messages-container {
+            flex: 1;
             overflow-y: auto;
             padding: 20px;
             background: #f8f9fa;
         }
+
         .message {
             margin-bottom: 15px;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 15px;
+            border-radius: 15px;
             max-width: 70%;
-            animation: fadeIn 0.3s ease-in;
+            animation: fadeIn 0.3s ease;
+            position: relative;
         }
-        .my-message {
+
+        .message.own {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             margin-left: auto;
             text-align: right;
         }
-        .other-message {
+
+        .message.other {
             background: white;
             border: 1px solid #e9ecef;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
+
         .message-user {
-            font-weight: bold;
+            font-weight: 600;
             margin-bottom: 5px;
             font-size: 14px;
         }
+
         .message-text {
             font-size: 16px;
             line-height: 1.4;
+            word-wrap: break-word;
         }
+
         .message-time {
-            font-size: 12px;
+            font-size: 11px;
             opacity: 0.7;
             margin-top: 5px;
         }
-        .input-area {
+
+        .chat-input-container {
             display: flex;
             padding: 20px;
             gap: 10px;
             background: white;
             border-top: 1px solid #e9ecef;
         }
-        .input-area input {
+
+        .chat-input {
             flex: 1;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
             font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease;
         }
-        .input-area button {
-            padding: 12px 24px;
+
+        .chat-input:focus {
+            border-color: #4facfe;
+        }
+
+        .send-btn {
+            padding: 15px 25px;
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
-            font-weight: bold;
+            transition: all 0.3s ease;
         }
-        .status {
-            padding: 10px;
+
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 90%;
             text-align: center;
-            margin: 10px;
-            border-radius: 8px;
-            font-size: 14px;
+            animation: fadeIn 0.5s ease;
         }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+
+        .modal h2 {
+            margin-bottom: 15px;
+            color: #2c3e50;
         }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+
+        .modal p {
+            margin-bottom: 20px;
+            color: #6c757d;
+            line-height: 1.5;
         }
-        .loading {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+
+        .backup-codes {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .backup-code {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #2c3e50;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1001;
+            animation: fadeIn 0.3s ease;
+            border-left: 4px solid #4facfe;
+        }
+
+        .notification.error {
+            border-left-color: #e74c3c;
+        }
+
+        .notification.success {
+            border-left-color: #2ecc71;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
+    <!-- Контейнер аутентификации -->
+    <div class="container" id="authContainer">
+        <div class="auth-section">
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="showTab('register')">Регистрация</button>
+                <button class="auth-tab" onclick="showTab('login')">Вход</button>
+            </div>
+
+            <!-- Форма регистрации -->
+            <div class="auth-form active" id="registerForm">
+                <h2 class="form-title">Регистрация</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Никнейм (4–12 символов)</label>
+                    <input type="text" class="form-input" id="regUsername" placeholder="Введите никнейм" maxlength="12">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <input type="password" class="form-input" id="regPassword" placeholder="Введите пароль">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Повторите пароль</label>
+                    <input type="password" class="form-input" id="regPasswordConfirm" placeholder="Повторите пароль">
+                </div>
+
+                <div class="captcha-container">
+                    <div class="captcha-code" id="regCaptchaCode">XXXXXX</div>
+                    <input type="text" class="form-input captcha-input" id="regCaptchaInput" placeholder="Введите код с картинки" maxlength="6">
+                </div>
+
+                <button class="btn" onclick="register()">Зарегистрироваться</button>
+            </div>
+
+            <!-- Форма входа -->
+            <div class="auth-form" id="loginForm">
+                <h2 class="form-title">Вход</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Никнейм</label>
+                    <input type="text" class="form-input" id="loginUsername" placeholder="Введите никнейм">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <input type="password" class="form-input" id="loginPassword" placeholder="Введите пароль">
+                </div>
+
+                <div class="captcha-container">
+                    <div class="captcha-code" id="loginCaptchaCode">XXXXXX</div>
+                    <input type="text" class="form-input captcha-input" id="loginCaptchaInput" placeholder="Введите код с картинки" maxlength="6">
+                </div>
+
+                <button class="btn" onclick="login()">Войти</button>
+                
+                <div class="text-center mt-3">
+                    <span class="link" onclick="showTab('recovery')">Не помню пароль</span>
+                </div>
+            </div>
+
+            <!-- Форма восстановления -->
+            <div class="auth-form" id="recoveryForm">
+                <h2 class="form-title">Восстановление пароля</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Ваш никнейм</label>
+                    <input type="text" class="form-input" id="recoveryUsername" placeholder="Введите никнейм">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Введите один из ваших резервных кодов</label>
+                    <input type="text" class="form-input" id="recoveryCode" placeholder="XXXX-XXXX">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Новый пароль</label>
+                    <input type="password" class="form-input" id="recoveryPassword" placeholder="Введите новый пароль">
+                </div>
+
+                <button class="btn" onclick="recoverPassword()">Восстановить пароль</button>
+                
+                <div class="text-center mt-3">
+                    <span class="link" onclick="showTab('login')">← Вернуться к входу</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Чат -->
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header">
             <h1>🚀 ParallaxChat</h1>
-            <p>Мессенджер в реальном времени</p>
+            <div class="user-info">Вы: <span id="currentUsername">Гость</span></div>
         </div>
         
-        <div class="user-info">
-            <input type="text" id="userName" placeholder="Введите ваше имя" value="Аноним">
-            <button onclick="setUserName()">Сохранить имя</button>
+        <div class="messages-container" id="messagesContainer">
+            <div style="text-align: center; padding: 50px; color: #666;">
+                Загрузка сообщений...
+            </div>
         </div>
         
-        <div id="status" class="status loading">
-            🔄 Подключаемся к Firebase...
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="messageInput" placeholder="Введите сообщение..." onkeypress="if(event.key=='Enter') sendMessage()">
+            <button class="send-btn" onclick="sendMessage()">➤</button>
         </div>
-        
-        <div class="messages" id="messages">
-            <!-- Сообщения появятся здесь -->
+    </div>
+
+    <!-- Модальное окно подтверждения регистрации -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <h2>⚠️ Подтверждение регистрации</h2>
+            <p>Вы выбрали никнейм: <strong id="confirmUsername"></strong></p>
+            <p><strong>Внимание:</strong> После регистрации изменить никнейм будет невозможно!</p>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="hideModal('confirmModal')">Отмена</button>
+                <button class="btn" onclick="confirmRegistration()">Подтвердить</button>
+            </div>
         </div>
-        
-        <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendMessage()" id="sendBtn">Отправить</button>
+    </div>
+
+    <!-- Модальное окно с резервными кодами -->
+    <div class="modal" id="backupCodesModal">
+        <div class="modal-content">
+            <h2>🔐 Резервные коды</h2>
+            <p>Сохраните эти коды в надежном месте. Они понадобятся для восстановления доступа:</p>
+            <div class="backup-codes">
+                <div class="backup-code" id="backupCode1">XXXX-XXXX</div>
+                <div class="backup-code" id="backupCode2">XXXX-XXXX</div>
+                <div class="backup-code" id="backupCode3">XXXX-XXXX</div>
+            </div>
+            <button class="btn" onclick="hideModal('backupCodesModal'); showChat()">Понятно</button>
         </div>
     </div>
 
     <script>
-        // ПОЛНЫЙ КОНФИГ FIREBASE
+        // Firebase конфигурация
         const firebaseConfig = {
             apiKey: "AIzaSyD9McHoEDY-eJuuvBkk-capB6bgbqIfCbA",
             authDomain: "parallaxchat-2f962.firebaseapp.com",
@@ -188,61 +548,310 @@
             appId: "1:83172372331:web:17a6328c2d7a499eefa62e"
         };
 
-        // Глобальные переменные
+        // Инициализация Firebase
         let database;
-        let currentUser = {
-            id: 'user_' + Math.random().toString(36).substr(2, 9),
-            name: 'Аноним'
-        };
+        let currentUser = null;
 
-        // Инициализация приложения
-        function initApp() {
-            try {
-                // Проверяем загружен ли Firebase
-                if (typeof firebase === 'undefined') {
-                    throw new Error('Firebase SDK не загружен. Проверьте интернет соединение.');
-                }
-
-                console.log('Firebase SDK загружен, инициализируем...');
-                
-                // Инициализируем Firebase
-                const app = firebase.initializeApp(firebaseConfig);
-                database = firebase.database();
-                
-                console.log('Firebase инициализирован');
-                
-                // Обновляем статус
-                updateStatus('success', '✅ Firebase подключен! Проверяем базу данных...');
-
-                // Проверяем подключение к базе данных
-                database.ref('.info/connected').on('value', (snapshot) => {
-                    if (snapshot.val() === true) {
-                        updateStatus('success', '✅ Подключено к базе данных! Чат готов к работе.');
-                        loadMessages();
-                    } else {
-                        updateStatus('error', '❌ Нет подключения к базе данных');
-                    }
-                });
-
-                // Обработчик ошибок базы данных
-                database.ref('.info/connected').on('value', () => {}, (error) => {
-                    updateStatus('error', '❌ Ошибка подключения: ' + error.message);
-                });
-
-            } catch (error) {
-                console.error('Ошибка инициализации:', error);
-                updateStatus('error', '❌ Ошибка: ' + error.message);
-            }
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('Firebase инициализирован');
+        } catch (error) {
+            console.error('Ошибка Firebase:', error);
         }
 
-        // Установка имени пользователя
-        function setUserName() {
-            const nameInput = document.getElementById('userName');
-            const name = nameInput.value.trim();
-            if (name) {
-                currentUser.name = name;
-                updateStatus('success', '✅ Имя установлено: ' + name);
+        // Глобальные переменные
+        let generatedBackupCodes = [];
+        let pendingRegistration = null;
+
+        // Генерация капчи
+        function generateCaptcha() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
             }
+            return result;
+        }
+
+        // Генерация резервных кодов
+        function generateBackupCodes() {
+            const codes = [];
+            for (let i = 0; i < 3; i++) {
+                const part1 = Math.random().toString(36).substr(2, 4).toUpperCase();
+                const part2 = Math.random().toString(36).substr(2, 4).toUpperCase();
+                codes.push(`${part1}-${part2}`);
+            }
+            return codes;
+        }
+
+        // Обновление капчи на формах
+        function updateCaptchas() {
+            document.getElementById('regCaptchaCode').textContent = generateCaptcha();
+            document.getElementById('loginCaptchaCode').textContent = generateCaptcha();
+        }
+
+        // Показать/скрыть вкладки
+        function showTab(tabName) {
+            // Скрыть все формы
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            // Показать выбранную форму
+            document.getElementById(tabName + 'Form').classList.add('active');
+            
+            // Обновить активную вкладку
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Обновить капчу
+            updateCaptchas();
+        }
+
+        // Показать модальное окно
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        // Скрыть модальное окно
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Показать уведомление
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Валидация никнейма
+        function validateUsername(username) {
+            if (username.length < 4 || username.length > 12) {
+                showNotification('Никнейм должен быть от 4 до 12 символов', 'error');
+                return false;
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showNotification('Никнейм может содержать только буквы, цифры и подчеркивания', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // Валидация пароля
+        function validatePassword(password) {
+            if (password.length < 6) {
+                showNotification('Пароль должен быть не менее 6 символов', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // Регистрация
+        function register() {
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+            const captchaInput = document.getElementById('regCaptchaInput').value;
+            const captchaCode = document.getElementById('regCaptchaCode').textContent;
+
+            // Валидация
+            if (!validateUsername(username)) return;
+            if (!validatePassword(password)) return;
+            if (password !== passwordConfirm) {
+                showNotification('Пароли не совпадают', 'error');
+                return;
+            }
+            if (captchaInput !== captchaCode) {
+                showNotification('Неверный код капчи', 'error');
+                updateCaptchas();
+                return;
+            }
+
+            // Проверить существование пользователя
+            database.ref('users/' + username).once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    showNotification('Этот никнейм уже занят', 'error');
+                } else {
+                    // Показать окно подтверждения
+                    document.getElementById('confirmUsername').textContent = username;
+                    pendingRegistration = { username, password };
+                    showModal('confirmModal');
+                }
+            });
+        }
+
+        // Подтверждение регистрации
+        function confirmRegistration() {
+            if (!pendingRegistration) return;
+            
+            const { username, password } = pendingRegistration;
+            
+            // Генерируем резервные коды
+            generatedBackupCodes = generateBackupCodes();
+            
+            // Сохраняем пользователя
+            const userData = {
+                password: password,
+                backupCodes: generatedBackupCodes,
+                createdAt: Date.now()
+            };
+            
+            database.ref('users/' + username).set(userData)
+                .then(() => {
+                    hideModal('confirmModal');
+                    
+                    // Показываем резервные коды
+                    document.getElementById('backupCode1').textContent = generatedBackupCodes[0];
+                    document.getElementById('backupCode2').textContent = generatedBackupCodes[1];
+                    document.getElementById('backupCode3').textContent = generatedBackupCodes[2];
+                    showModal('backupCodesModal');
+                })
+                .catch(error => {
+                    showNotification('Ошибка регистрации: ' + error.message, 'error');
+                });
+        }
+
+        // Вход
+        function login() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const captchaInput = document.getElementById('loginCaptchaInput').value;
+            const captchaCode = document.getElementById('loginCaptchaCode').textContent;
+
+            if (!username || !password) {
+                showNotification('Заполните все поля', 'error');
+                return;
+            }
+            if (captchaInput !== captchaCode) {
+                showNotification('Неверный код капчи', 'error');
+                updateCaptchas();
+                return;
+            }
+
+            database.ref('users/' + username).once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    showNotification('Пользователь не найден', 'error');
+                    return;
+                }
+
+                const userData = snapshot.val();
+                if (userData.password !== password) {
+                    showNotification('Неверный пароль', 'error');
+                    return;
+                }
+
+                // Успешный вход
+                currentUser = {
+                    username: username,
+                    backupCodes: userData.backupCodes || []
+                };
+                
+                showChat();
+                showNotification('Успешный вход!', 'success');
+            });
+        }
+
+        // Восстановление пароля
+        function recoverPassword() {
+            const username = document.getElementById('recoveryUsername').value.trim();
+            const backupCode = document.getElementById('recoveryCode').value.trim().toUpperCase();
+            const newPassword = document.getElementById('recoveryPassword').value;
+
+            if (!username || !backupCode || !newPassword) {
+                showNotification('Заполните все поля', 'error');
+                return;
+            }
+            if (!validatePassword(newPassword)) return;
+
+            database.ref('users/' + username).once('value').then(snapshot => {
+                if (!snapshot.exists()) {
+                    showNotification('Пользователь не найден', 'error');
+                    return;
+                }
+
+                const userData = snapshot.val();
+                const backupCodes = userData.backupCodes || [];
+                
+                // Проверяем резервный код
+                const codeIndex = backupCodes.indexOf(backupCode);
+                if (codeIndex === -1) {
+                    showNotification('Неверный резервный код', 'error');
+                    return;
+                }
+
+                // Удаляем использованный код
+                backupCodes.splice(codeIndex, 1);
+                
+                // Обновляем пользователя
+                userData.password = newPassword;
+                userData.backupCodes = backupCodes;
+                
+                database.ref('users/' + username).set(userData)
+                    .then(() => {
+                        showNotification('Пароль успешно изменен!', 'success');
+                        showTab('login');
+                    })
+                    .catch(error => {
+                        showNotification('Ошибка: ' + error.message, 'error');
+                    });
+            });
+        }
+
+        // Показать чат
+        function showChat() {
+            document.getElementById('authContainer').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'flex';
+            document.getElementById('currentUsername').textContent = currentUser.username;
+            loadMessages();
+        }
+
+        // Загрузка сообщений
+        function loadMessages() {
+            database.ref('messages').on('value', (snapshot) => {
+                const container = document.getElementById('messagesContainer');
+                const messages = [];
+                
+                snapshot.forEach((child) => {
+                    messages.push({ id: child.key, ...child.val() });
+                });
+                
+                messages.sort((a, b) => a.timestamp - b.timestamp);
+                container.innerHTML = '';
+                
+                if (messages.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 50px; color: #666;">Пока нет сообщений. Будьте первым!</div>';
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    const isMyMessage = msg.userId === currentUser.username;
+                    div.className = `message ${isMyMessage ? 'own' : 'other'}`;
+                    
+                    const time = new Date(msg.timestamp).toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    div.innerHTML = `
+                        <div class="message-user">${msg.userName}</div>
+                        <div class="message-text">${msg.text}</div>
+                        <div class="message-time">${time}</div>
+                    `;
+                    container.appendChild(div);
+                });
+                
+                container.scrollTop = container.scrollHeight;
+            });
         }
 
         // Отправка сообщения
@@ -250,105 +859,24 @@
             const input = document.getElementById('messageInput');
             const text = input.value.trim();
             
-            if (!text) return;
+            if (text && currentUser) {
+                database.ref('messages').push({
+                    userId: currentUser.username,
+                    userName: currentUser.username,
+                    text: text,
+                    timestamp: Date.now()
+                });
+                input.value = '';
+            }
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCaptchas();
             
-            if (!database) {
-                updateStatus('error', '❌ База данных не подключена');
-                return;
-            }
-
-            const messageData = {
-                userId: currentUser.id,
-                userName: currentUser.name,
-                text: text,
-                timestamp: Date.now()
-            };
-
-            database.ref('messages').push(messageData)
-                .then(() => {
-                    input.value = '';
-                    input.focus();
-                })
-                .catch((error) => {
-                    updateStatus('error', '❌ Ошибка отправки: ' + error.message);
-                });
-        }
-
-        // Загрузка сообщений
-        function loadMessages() {
-            database.ref('messages').on('value', (snapshot) => {
-                const messagesContainer = document.getElementById('messages');
-                const messages = [];
-                
-                // Собираем все сообщения
-                snapshot.forEach((childSnapshot) => {
-                    messages.push({
-                        id: childSnapshot.key,
-                        ...childSnapshot.val()
-                    });
-                });
-
-                // Сортируем по времени (старые сверху)
-                messages.sort((a, b) => a.timestamp - b.timestamp);
-
-                // Очищаем контейнер
-                messagesContainer.innerHTML = '';
-
-                // Если сообщений нет
-                if (messages.length === 0) {
-                    messagesContainer.innerHTML = `
-                        <div style="text-align: center; padding: 50px; color: #666;">
-                            📝 Пока нет сообщений. Будьте первым!
-                        </div>
-                    `;
-                    return;
-                }
-
-                // Отображаем сообщения
-                messages.forEach(message => {
-                    const messageElement = document.createElement('div');
-                    const isMyMessage = message.userId === currentUser.id;
-                    
-                    messageElement.className = `message ${isMyMessage ? 'my-message' : 'other-message'}`;
-                    
-                    const time = new Date(message.timestamp).toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-
-                    messageElement.innerHTML = `
-                        <div class="message-user">${message.userName}</div>
-                        <div class="message-text">${message.text}</div>
-                        <div class="message-time">${time}</div>
-                    `;
-                    
-                    messagesContainer.appendChild(messageElement);
-                });
-
-                // Авто-скролл к последнему сообщению
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
-            }, (error) => {
-                updateStatus('error', '❌ Ошибка загрузки сообщений: ' + error.message);
-            });
-        }
-
-        // Обработчик клавиши Enter
-        function handleKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        }
-
-        // Обновление статуса
-        function updateStatus(type, message) {
-            const statusElement = document.getElementById('status');
-            statusElement.className = `status ${type}`;
-            statusElement.innerHTML = message;
-        }
-
-        // Запускаем приложение когда страница загрузится
-        document.addEventListener('DOMContentLoaded', initApp);
+            // Автофокус на поля ввода
+            document.getElementById('regUsername').focus();
+        });
     </script>
 </body>
 </html>
