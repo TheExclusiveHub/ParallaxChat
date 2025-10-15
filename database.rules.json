@@ -1,7 +1,0 @@
-# Создаем файл database.rules.json
-echo '{
-  "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null"
-  }
-}' > database.rules.json
