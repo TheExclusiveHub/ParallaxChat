@@ -10,64 +10,143 @@
     
     <style>
         body { 
-            font-family: Arial; 
-            background: #667eea;
+            font-family: Arial, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0; 
             padding: 20px;
+            min-height: 100vh;
         }
         .container {
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             background: white;
-            border-radius: 10px;
-            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
         .header {
             text-align: center;
             color: white;
-            background: #4facfe;
-            margin: -20px -20px 20px -20px;
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            padding: 30px;
         }
-        .messages {
-            height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #f9f9f9;
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
         }
-        .message {
-            margin: 5px 0;
-            padding: 8px;
-            border-radius: 5px;
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
         }
-        .my-message {
-            background: #4facfe;
-            color: white;
-            text-align: right;
-        }
-        .other-message {
-            background: #e9ecef;
-        }
-        .input-area {
+        .user-info {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
             display: flex;
             gap: 10px;
+            align-items: center;
         }
-        .input-area input {
-            flex: 1;
-            padding: 10px;
+        .user-info input {
+            padding: 8px 12px;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 6px;
+            flex: 1;
         }
-        .input-area button {
-            padding: 10px 20px;
+        .user-info button {
+            padding: 8px 16px;
             background: #4facfe;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 12px;
+            max-width: 70%;
+            animation: fadeIn 0.3s ease-in;
+        }
+        .my-message {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        .other-message {
+            background: white;
+            border: 1px solid #e9ecef;
+        }
+        .message-user {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .message-text {
+            font-size: 16px;
+            line-height: 1.4;
+        }
+        .message-time {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .input-area {
+            display: flex;
+            padding: 20px;
+            gap: 10px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .input-area button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .status {
+            padding: 10px;
+            text-align: center;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -75,80 +154,201 @@
     <div class="container">
         <div class="header">
             <h1>🚀 ParallaxChat</h1>
-            <p>Простой мессенджер</p>
+            <p>Мессенджер в реальном времени</p>
+        </div>
+        
+        <div class="user-info">
+            <input type="text" id="userName" placeholder="Введите ваше имя" value="Аноним">
+            <button onclick="setUserName()">Сохранить имя</button>
+        </div>
+        
+        <div id="status" class="status loading">
+            🔄 Подключаемся к Firebase...
         </div>
         
         <div class="messages" id="messages">
-            <div>Загрузка чата...</div>
+            <!-- Сообщения появятся здесь -->
         </div>
         
         <div class="input-area">
-            <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="if(event.key=='Enter') sendMessage()">
-            <button onclick="sendMessage()">Отправить</button>
+            <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" id="sendBtn">Отправить</button>
         </div>
     </div>
 
     <script>
-        // Firebase config - ЗАМЕНИ НА СВОИ ДАННЫЕ!
-const firebaseConfig = {
-  apiKey: "AIzaSyD9McHoEDY-eJuuvBkk-capB6bgbqIfCbA",
-  authDomain: "parallaxchat-2f962.firebaseapp.com",
-  projectId: "parallaxchat-2f962",
-  storageBucket: "parallaxchat-2f962.firebasestorage.app",
-  messagingSenderId: "83172372331",
-  appId: "1:83172372331:web:17a6328c2d7a499eefa62e"
-};
+        // ПОЛНЫЙ КОНФИГ FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyD9McHoEDY-eJuuvBkk-capB6bgbqIfCbA",
+            authDomain: "parallaxchat-2f962.firebaseapp.com",
+            databaseURL: "https://parallaxchat-2f962-default-rtdb.europe-west1.firebasedatabase.app/",
+            projectId: "parallaxchat-2f962",
+            storageBucket: "parallaxchat-2f962.firebasestorage.app",
+            messagingSenderId: "83172372331",
+            appId: "1:83172372331:web:17a6328c2d7a499eefa62e"
+        };
 
-        // Инициализация Firebase
-        if (typeof firebase !== 'undefined') {
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.database();
-            
-            const user = {
-                id: 'user_' + Math.random().toString(36).substr(2, 9),
-                name: 'User_' + Math.floor(Math.random() * 1000)
-            };
+        // Глобальные переменные
+        let database;
+        let currentUser = {
+            id: 'user_' + Math.random().toString(36).substr(2, 9),
+            name: 'Аноним'
+        };
 
-            // Отправка сообщения
-            window.sendMessage = function() {
-                const input = document.getElementById('messageInput');
-                const text = input.value.trim();
-                if (text) {
-                    db.ref('messages').push({
-                        userId: user.id,
-                        userName: user.name,
-                        text: text,
-                        timestamp: Date.now()
-                    });
-                    input.value = '';
+        // Инициализация приложения
+        function initApp() {
+            try {
+                // Проверяем загружен ли Firebase
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK не загружен. Проверьте интернет соединение.');
                 }
+
+                console.log('Firebase SDK загружен, инициализируем...');
+                
+                // Инициализируем Firebase
+                const app = firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                
+                console.log('Firebase инициализирован');
+                
+                // Обновляем статус
+                updateStatus('success', '✅ Firebase подключен! Проверяем базу данных...');
+
+                // Проверяем подключение к базе данных
+                database.ref('.info/connected').on('value', (snapshot) => {
+                    if (snapshot.val() === true) {
+                        updateStatus('success', '✅ Подключено к базе данных! Чат готов к работе.');
+                        loadMessages();
+                    } else {
+                        updateStatus('error', '❌ Нет подключения к базе данных');
+                    }
+                });
+
+                // Обработчик ошибок базы данных
+                database.ref('.info/connected').on('value', () => {}, (error) => {
+                    updateStatus('error', '❌ Ошибка подключения: ' + error.message);
+                });
+
+            } catch (error) {
+                console.error('Ошибка инициализации:', error);
+                updateStatus('error', '❌ Ошибка: ' + error.message);
+            }
+        }
+
+        // Установка имени пользователя
+        function setUserName() {
+            const nameInput = document.getElementById('userName');
+            const name = nameInput.value.trim();
+            if (name) {
+                currentUser.name = name;
+                updateStatus('success', '✅ Имя установлено: ' + name);
+            }
+        }
+
+        // Отправка сообщения
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            if (!database) {
+                updateStatus('error', '❌ База данных не подключена');
+                return;
+            }
+
+            const messageData = {
+                userId: currentUser.id,
+                userName: currentUser.name,
+                text: text,
+                timestamp: Date.now()
             };
 
-            // Получение сообщений
-            db.ref('messages').on('value', (snapshot) => {
-                const messagesDiv = document.getElementById('messages');
-                messagesDiv.innerHTML = '';
-                
-                const messages = [];
-                snapshot.forEach((child) => {
-                    messages.push({ id: child.key, ...child.val() });
+            database.ref('messages').push(messageData)
+                .then(() => {
+                    input.value = '';
+                    input.focus();
+                })
+                .catch((error) => {
+                    updateStatus('error', '❌ Ошибка отправки: ' + error.message);
                 });
-                
-                messages.sort((a, b) => a.timestamp - b.timestamp);
-                
-                messages.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = msg.userId === user.id ? 'message my-message' : 'message other-message';
-                    div.innerHTML = `<strong>${msg.userName}:</strong> ${msg.text}`;
-                    messagesDiv.appendChild(div);
-                });
-                
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            });
-            
-        } else {
-            document.getElementById('messages').innerHTML = 'Ошибка: Firebase не загружен';
         }
+
+        // Загрузка сообщений
+        function loadMessages() {
+            database.ref('messages').on('value', (snapshot) => {
+                const messagesContainer = document.getElementById('messages');
+                const messages = [];
+                
+                // Собираем все сообщения
+                snapshot.forEach((childSnapshot) => {
+                    messages.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+
+                // Сортируем по времени (старые сверху)
+                messages.sort((a, b) => a.timestamp - b.timestamp);
+
+                // Очищаем контейнер
+                messagesContainer.innerHTML = '';
+
+                // Если сообщений нет
+                if (messages.length === 0) {
+                    messagesContainer.innerHTML = `
+                        <div style="text-align: center; padding: 50px; color: #666;">
+                            📝 Пока нет сообщений. Будьте первым!
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Отображаем сообщения
+                messages.forEach(message => {
+                    const messageElement = document.createElement('div');
+                    const isMyMessage = message.userId === currentUser.id;
+                    
+                    messageElement.className = `message ${isMyMessage ? 'my-message' : 'other-message'}`;
+                    
+                    const time = new Date(message.timestamp).toLocaleTimeString('ru-RU', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    messageElement.innerHTML = `
+                        <div class="message-user">${message.userName}</div>
+                        <div class="message-text">${message.text}</div>
+                        <div class="message-time">${time}</div>
+                    `;
+                    
+                    messagesContainer.appendChild(messageElement);
+                });
+
+                // Авто-скролл к последнему сообщению
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+            }, (error) => {
+                updateStatus('error', '❌ Ошибка загрузки сообщений: ' + error.message);
+            });
+        }
+
+        // Обработчик клавиши Enter
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // Обновление статуса
+        function updateStatus(type, message) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = `status ${type}`;
+            statusElement.innerHTML = message;
+        }
+
+        // Запускаем приложение когда страница загрузится
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 </html>
