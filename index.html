@@ -179,6 +179,7 @@
             color: var(--text-color);
             cursor: pointer;
             margin-right: 15px;
+            padding: 5px;
         }
 
         .chat-contact-avatar {
@@ -639,11 +640,12 @@
         }
 
         .mobile-menu-item {
-            padding: 15px;
+            padding: 12px 15px;
             border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             display: flex;
             align-items: center;
+            font-size: 14px;
         }
 
         .mobile-menu-item:last-child {
@@ -959,23 +961,38 @@
         function setStorageItem(key, value) {
             try {
                 localStorage.setItem(key, value);
-            return true;
+                return true;
             } catch (e) {
                 console.error('LocalStorage error:', e);
                 return false;
             }
         }
 
-        // Проверка авторизации при загрузке
-        window.addEventListener('load', function() {
-            console.log('Страница загружена, проверяем авторизацию...');
+        // Проверка авторизации при загрузке - УЛУЧШЕННАЯ ВЕРСИЯ
+        function checkAuth() {
+            console.log('Проверяем авторизацию...');
             const savedUser = getStorageItem('parallaxchat_user');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
                     console.log('Найден сохраненный пользователь:', currentUser.username);
-                    showApp();
-                    listenForNotifications();
+                    
+                    // Проверяем, что пользователь действительно существует в Firebase
+                    database.ref('users/' + currentUser.username).once('value').then(snapshot => {
+                        if (snapshot.exists()) {
+                            console.log('Пользователь подтвержден в Firebase');
+                            showApp();
+                            listenForNotifications();
+                        } else {
+                            console.log('Пользователь не найден в Firebase, очищаем localStorage');
+                            setStorageItem('parallaxchat_user', null);
+                            currentUser = null;
+                        }
+                    }).catch(error => {
+                        console.error('Ошибка проверки пользователя:', error);
+                        setStorageItem('parallaxchat_user', null);
+                        currentUser = null;
+                    });
                 } catch (e) {
                     console.error('Ошибка парсинга пользователя:', e);
                     setStorageItem('parallaxchat_user', null);
@@ -983,6 +1000,11 @@
             } else {
                 console.log('Сохраненный пользователь не найден');
             }
+        }
+
+        // Загрузка при загрузке страницы
+        window.addEventListener('load', function() {
+            console.log('Страница загружена');
             
             // Загрузка темы
             const savedTheme = localStorage.getItem('parallaxchat_theme');
@@ -990,6 +1012,9 @@
                 document.body.classList.add('dark-mode');
                 document.getElementById('themeSwitch').checked = true;
             }
+            
+            // Проверяем авторизацию
+            checkAuth();
         });
 
         // Генерация цифровой капчи
@@ -1296,17 +1321,6 @@
                 console.log('Загружено контактов:', contacts.length);
                 displayContacts(contacts);
             });
-
-            // Загрузка последних сообщений для чатов
-            database.ref('chats').orderByChild('participants/' + currentUser.username).equalTo(true).on('value', (snapshot) => {
-                const chats = [];
-                snapshot.forEach((childSnapshot) => {
-                    const chat = childSnapshot.val();
-                    chat.id = childSnapshot.key;
-                    chats.push(chat);
-                });
-                console.log('Загружено чатов:', chats.length);
-            });
         }
 
         // Отображение контактов
@@ -1476,9 +1490,9 @@
             const mobileMenu = document.getElementById('mobileDropdownMenu');
             const menuButton = document.querySelector('.mobile-menu-dots');
             
-            if (mobileMenu.classList.contains('active') && 
+            if (mobileMenu && mobileMenu.classList.contains('active') && 
                 !mobileMenu.contains(event.target) && 
-                !menuButton.contains(event.target)) {
+                event.target !== menuButton) {
                 mobileMenu.classList.remove('active');
             }
         });
