@@ -153,6 +153,7 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .chat-header {
@@ -161,6 +162,23 @@
             display: flex;
             align-items: center;
             background: var(--sidebar-bg);
+            justify-content: space-between;
+        }
+
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--text-color);
+            cursor: pointer;
+            margin-right: 15px;
         }
 
         .chat-contact-avatar {
@@ -548,6 +566,8 @@
                 height: 100%;
                 z-index: 100;
                 transform: translateX(-100%);
+                width: 100%;
+                max-width: 300px;
             }
 
             .sidebar.active {
@@ -567,6 +587,71 @@
                 margin: 20px;
                 width: calc(100% - 40px);
             }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .menu-panel {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .chat-header {
+                padding: 10px 15px;
+            }
+        }
+
+        /* Мобильное меню - три точки */
+        .mobile-menu-dots {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-menu-dots {
+                display: block;
+            }
+        }
+
+        /* Мобильное выпадающее меню */
+        .mobile-dropdown-menu {
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            background: var(--sidebar-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1002;
+            display: none;
+            min-width: 200px;
+        }
+
+        .mobile-dropdown-menu.active {
+            display: block;
+        }
+
+        .mobile-menu-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .mobile-menu-item:last-child {
+            border-bottom: none;
+        }
+
+        .mobile-menu-item:hover {
+            background: var(--hover-color);
         }
     </style>
 </head>
@@ -668,8 +753,34 @@
         <!-- Область чата -->
         <div class="chat-area">
             <div class="chat-header">
-                <div class="chat-contact-avatar" id="currentChatAvatar" onclick="showUserProfile(currentChatUser)">U</div>
-                <div class="chat-contact-name" id="currentChatName">Выберите чат</div>
+                <div class="chat-header-left">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <div class="chat-contact-avatar" id="currentChatAvatar" onclick="showUserProfile(currentChatUser)">U</div>
+                    <div class="chat-contact-name" id="currentChatName">Выберите чат</div>
+                </div>
+                <button class="mobile-menu-dots" onclick="toggleMobileMenu()">⋯</button>
+            </div>
+
+            <!-- Мобильное выпадающее меню -->
+            <div class="mobile-dropdown-menu" id="mobileDropdownMenu">
+                <div class="mobile-menu-item" onclick="showAddContactModal(); toggleMobileMenu()">
+                    👤 Добавить контакт
+                </div>
+                <div class="mobile-menu-item" onclick="showMyProfileModal(); toggleMobileMenu()">
+                    👤 Мой профиль
+                </div>
+                <div class="mobile-menu-item" onclick="showCreateGroupModal(); toggleMobileMenu()">
+                    👥 Создать группу
+                </div>
+                <div class="mobile-menu-item" onclick="showContactsModal(); toggleMobileMenu()">
+                    📋 Контакты и заявки
+                </div>
+                <div class="mobile-menu-item" onclick="toggleTheme(); toggleMobileMenu()">
+                    🌙 Переключить тему
+                </div>
+                <div class="mobile-menu-item" onclick="toggleMenu(); toggleMobileMenu()">
+                    ⚙️ Все настройки
+                </div>
             </div>
 
             <div class="messages-container" id="messagesContainer">
@@ -848,8 +959,10 @@
         function setStorageItem(key, value) {
             try {
                 localStorage.setItem(key, value);
+            return true;
             } catch (e) {
                 console.error('LocalStorage error:', e);
+                return false;
             }
         }
 
@@ -869,6 +982,13 @@
                 }
             } else {
                 console.log('Сохраненный пользователь не найден');
+            }
+            
+            // Загрузка темы
+            const savedTheme = localStorage.getItem('parallaxchat_theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.getElementById('themeSwitch').checked = true;
             }
         });
 
@@ -950,8 +1070,9 @@
                         };
                         
                         // Сохраняем в localStorage
-                        setStorageItem('parallaxchat_user', JSON.stringify(currentUser));
-                        console.log('Пользователь сохранен в localStorage');
+                        if (setStorageItem('parallaxchat_user', JSON.stringify(currentUser))) {
+                            console.log('Пользователь сохранен в localStorage');
+                        }
                         
                         // Показываем резервные коды
                         showBackupCodes(backupCodes);
@@ -1009,8 +1130,9 @@
                 };
                 
                 // Сохраняем в localStorage
-                setStorageItem('parallaxchat_user', JSON.stringify(currentUser));
-                console.log('Пользователь сохранен в localStorage');
+                if (setStorageItem('parallaxchat_user', JSON.stringify(currentUser))) {
+                    console.log('Пользователь сохранен в localStorage');
+                }
                 
                 showApp();
                 showNotification('Успешный вход!');
@@ -1337,6 +1459,30 @@
             }
         }
 
+        // Мобильное меню (три точки)
+        function toggleMobileMenu() {
+            const mobileMenu = document.getElementById('mobileDropdownMenu');
+            mobileMenu.classList.toggle('active');
+        }
+
+        // Переключение сайдбара на мобильных
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
+        }
+
+        // Закрыть мобильное меню при клике вне его
+        document.addEventListener('click', function(event) {
+            const mobileMenu = document.getElementById('mobileDropdownMenu');
+            const menuButton = document.querySelector('.mobile-menu-dots');
+            
+            if (mobileMenu.classList.contains('active') && 
+                !mobileMenu.contains(event.target) && 
+                !menuButton.contains(event.target)) {
+                mobileMenu.classList.remove('active');
+            }
+        });
+
         // Модальные окна
         function showModal(modalId) {
             document.getElementById(modalId).style.display = 'flex';
@@ -1416,8 +1562,9 @@
                 about: about
             }).then(() => {
                 currentUser.about = about;
-                localStorage.setItem('parallaxchat_user', JSON.stringify(currentUser));
-                showNotification('Профиль обновлен');
+                if (setStorageItem('parallaxchat_user', JSON.stringify(currentUser))) {
+                    showNotification('Профиль обновлен');
+                }
                 hideModal('myProfileModal');
             });
         }
@@ -1532,14 +1679,10 @@
         // Ночной режим
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
-            localStorage.setItem('parallaxchat_theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-        }
-
-        // Загрузка темы
-        const savedTheme = localStorage.getItem('parallaxchat_theme');
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-mode');
-            document.getElementById('themeSwitch').checked = true;
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('parallaxchat_theme', isDark ? 'dark' : 'light');
+            document.getElementById('themeSwitch').checked = isDark;
+            showNotification(isDark ? 'Ночной режим включен' : 'Дневной режим включен');
         }
 
         // Отправка уведомления пользователю
