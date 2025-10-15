@@ -1,0 +1,6 @@
+# Создаем файл .firebaserc
+echo '{
+  "projects": {
+    "default": "parallaxchat-2f962"
+  }
+}' > .firebaserc
