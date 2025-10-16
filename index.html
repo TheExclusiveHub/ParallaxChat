@@ -162,7 +162,6 @@
             display: flex;
             align-items: center;
             background: var(--sidebar-bg);
-            justify-content: space-between;
         }
 
         .chat-header-left {
@@ -620,8 +619,8 @@
                 padding: 10px 15px;
             }
 
-            .mobile-menu-dots {
-                display: none !important;
+            .mobile-menu-btn {
+                display: block;
             }
         }
 
@@ -640,6 +639,14 @@
         @media (max-width: 768px) {
             .mobile-menu-btn {
                 display: block;
+            }
+            
+            .sidebar {
+                display: flex !important;
+            }
+            
+            .chat-area {
+                display: flex !important;
             }
         }
 
@@ -672,6 +679,36 @@
             .chat-view .back-button {
                 display: block;
             }
+            
+            .contacts-view .chat-area {
+                display: none;
+            }
+            
+            .chat-view .chat-area {
+                display: flex;
+            }
+        }
+
+        /* Начальный экран чата */
+        .chat-start-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            color: #666;
+        }
+
+        .chat-start-screen h3 {
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .chat-start-screen p {
+            font-size: 16px;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -771,10 +808,11 @@
         </div>
 
         <!-- Область чата -->
-        <div class="chat-area">
+        <div class="chat-area" id="chatArea">
             <div class="chat-header">
                 <div class="chat-header-left">
                     <button class="back-button" onclick="showContactsView()">←</button>
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
                     <div class="chat-contact-info">
                         <div class="chat-contact-avatar" id="currentChatAvatar" onclick="showUserProfile(currentChatUser)">U</div>
                         <div class="chat-contact-details">
@@ -786,8 +824,9 @@
             </div>
 
             <div class="messages-container" id="messagesContainer">
-                <div style="text-align: center; padding: 50px; color: #666;">
-                    Выберите чат для начала общения
+                <div class="chat-start-screen">
+                    <h3>Добро пожаловать в ParallaxChat!</h3>
+                    <p>Выберите контакт из списка слева чтобы начать общение</p>
                 </div>
             </div>
 
@@ -1293,12 +1332,24 @@
             document.getElementById('appContainer').classList.remove('chat-view');
             document.getElementById('appContainer').classList.add('contacts-view');
             currentChatUser = null;
+            
+            // На ПК показываем оба элемента, на мобильных только сайдбар
+            if (window.innerWidth > 768) {
+                document.getElementById('sidebar').style.display = 'flex';
+                document.getElementById('chatArea').style.display = 'flex';
+            }
         }
 
         // Показать вид чата
         function showChatView() {
             document.getElementById('appContainer').classList.remove('contacts-view');
             document.getElementById('appContainer').classList.add('chat-view');
+            
+            // На ПК показываем оба элемента, на мобильных только чат
+            if (window.innerWidth > 768) {
+                document.getElementById('sidebar').style.display = 'flex';
+                document.getElementById('chatArea').style.display = 'flex';
+            }
         }
 
         // Улучшенные уведомления
@@ -1456,6 +1507,8 @@
 
             const chatId = getChatId(currentUser.username, contactUsername);
             const container = document.getElementById('messagesContainer');
+            
+            // Очищаем контейнер, но не показываем начальный экран
             container.innerHTML = '';
 
             database.ref('messages/' + chatId).orderByChild('timestamp').on('value', (snapshot) => {
