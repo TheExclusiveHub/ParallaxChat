@@ -171,8 +171,7 @@
             flex: 1;
         }
 
-        .mobile-menu-btn {
-            display: none;
+        .back-button {
             background: none;
             border: none;
             font-size: 20px;
@@ -180,6 +179,13 @@
             cursor: pointer;
             margin-right: 15px;
             padding: 5px;
+            display: none;
+        }
+
+        .chat-contact-info {
+            display: flex;
+            align-items: center;
+            flex: 1;
         }
 
         .chat-contact-avatar {
@@ -196,9 +202,20 @@
             cursor: pointer;
         }
 
+        .chat-contact-details {
+            flex: 1;
+        }
+
         .chat-contact-name {
             font-weight: 600;
             font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .chat-contact-status {
+            font-size: 13px;
+            color: #666;
+            opacity: 0.8;
         }
 
         .messages-container {
@@ -569,6 +586,7 @@
                 transform: translateX(-100%);
                 width: 100%;
                 max-width: 300px;
+                transition: transform 0.3s ease;
             }
 
             .sidebar.active {
@@ -589,7 +607,7 @@
                 width: calc(100% - 40px);
             }
 
-            .mobile-menu-btn {
+            .back-button {
                 display: block;
             }
 
@@ -601,59 +619,59 @@
             .chat-header {
                 padding: 10px 15px;
             }
+
+            .mobile-menu-dots {
+                display: none !important;
+            }
         }
 
-        /* Мобильное меню - три точки */
-        .mobile-menu-dots {
+        /* Мобильное меню - три линии */
+        .mobile-menu-btn {
             display: none;
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 20px;
             color: var(--text-color);
             cursor: pointer;
+            margin-right: 15px;
             padding: 5px;
-            margin-left: 10px;
         }
 
         @media (max-width: 768px) {
-            .mobile-menu-dots {
+            .mobile-menu-btn {
                 display: block;
             }
         }
 
-        /* Мобильное выпадающее меню */
-        .mobile-dropdown-menu {
-            position: absolute;
-            top: 60px;
-            right: 15px;
-            background: var(--sidebar-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            z-index: 1002;
+        /* Состояния приложения */
+        .chat-view .sidebar {
             display: none;
-            min-width: 200px;
         }
 
-        .mobile-dropdown-menu.active {
-            display: block;
+        .chat-view .chat-area {
+            width: 100%;
         }
 
-        .mobile-menu-item {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
+        .contacts-view .sidebar {
             display: flex;
-            align-items: center;
-            font-size: 14px;
         }
 
-        .mobile-menu-item:last-child {
-            border-bottom: none;
+        .contacts-view .chat-area {
+            display: none;
         }
 
-        .mobile-menu-item:hover {
-            background: var(--hover-color);
+        @media (max-width: 768px) {
+            .chat-view .sidebar {
+                display: none;
+            }
+            
+            .contacts-view .sidebar {
+                display: flex;
+            }
+            
+            .chat-view .back-button {
+                display: block;
+            }
         }
     </style>
 </head>
@@ -734,7 +752,7 @@
     </div>
 
     <!-- Основное приложение -->
-    <div class="app-container" id="appContainer" style="display: none;">
+    <div class="app-container contacts-view" id="appContainer" style="display: none;">
         <!-- Сайдбар -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -756,32 +774,14 @@
         <div class="chat-area">
             <div class="chat-header">
                 <div class="chat-header-left">
-                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-                    <div class="chat-contact-avatar" id="currentChatAvatar" onclick="showUserProfile(currentChatUser)">U</div>
-                    <div class="chat-contact-name" id="currentChatName">Выберите чат</div>
-                </div>
-                <button class="mobile-menu-dots" onclick="toggleMobileMenu()">⋯</button>
-            </div>
-
-            <!-- Мобильное выпадающее меню -->
-            <div class="mobile-dropdown-menu" id="mobileDropdownMenu">
-                <div class="mobile-menu-item" onclick="showAddContactModal(); toggleMobileMenu()">
-                    👤 Добавить контакт
-                </div>
-                <div class="mobile-menu-item" onclick="showMyProfileModal(); toggleMobileMenu()">
-                    👤 Мой профиль
-                </div>
-                <div class="mobile-menu-item" onclick="showCreateGroupModal(); toggleMobileMenu()">
-                    👥 Создать группу
-                </div>
-                <div class="mobile-menu-item" onclick="showContactsModal(); toggleMobileMenu()">
-                    📋 Контакты и заявки
-                </div>
-                <div class="mobile-menu-item" onclick="toggleTheme(); toggleMobileMenu()">
-                    🌙 Переключить тему
-                </div>
-                <div class="mobile-menu-item" onclick="toggleMenu(); toggleMobileMenu()">
-                    ⚙️ Все настройки
+                    <button class="back-button" onclick="showContactsView()">←</button>
+                    <div class="chat-contact-info">
+                        <div class="chat-contact-avatar" id="currentChatAvatar" onclick="showUserProfile(currentChatUser)">U</div>
+                        <div class="chat-contact-details">
+                            <div class="chat-contact-name" id="currentChatName">Выберите чат</div>
+                            <div class="chat-contact-status" id="currentChatStatus">онлайн</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -938,6 +938,7 @@
         let database;
         let currentUser = null;
         let currentChatUser = null;
+        let userStatus = {};
 
         try {
             firebase.initializeApp(firebaseConfig);
@@ -968,7 +969,7 @@
             }
         }
 
-        // Проверка авторизации при загрузке - УЛУЧШЕННАЯ ВЕРСИЯ
+        // Проверка авторизации при загрузке
         function checkAuth() {
             console.log('Проверяем авторизацию...');
             const savedUser = getStorageItem('parallaxchat_user');
@@ -983,6 +984,7 @@
                             console.log('Пользователь подтвержден в Firebase');
                             showApp();
                             listenForNotifications();
+                            updateUserStatus(true);
                         } else {
                             console.log('Пользователь не найден в Firebase, очищаем localStorage');
                             setStorageItem('parallaxchat_user', null);
@@ -1016,6 +1018,48 @@
             // Проверяем авторизацию
             checkAuth();
         });
+
+        // Обновление статуса пользователя
+        function updateUserStatus(online) {
+            if (!currentUser) return;
+            
+            const statusData = {
+                online: online,
+                lastSeen: Date.now()
+            };
+            
+            database.ref('userStatus/' + currentUser.username).set(statusData);
+        }
+
+        // Получение статуса пользователя
+        function getUserStatus(username, callback) {
+            database.ref('userStatus/' + username).on('value', (snapshot) => {
+                const status = snapshot.val();
+                if (status) {
+                    if (status.online) {
+                        callback('онлайн');
+                    } else {
+                        const lastSeen = new Date(status.lastSeen);
+                        const now = new Date();
+                        const diffMinutes = Math.floor((now - lastSeen) / (1000 * 60));
+                        
+                        if (diffMinutes < 1) {
+                            callback('только что');
+                        } else if (diffMinutes < 60) {
+                            callback(`был(а) ${diffMinutes} мин. назад`);
+                        } else if (diffMinutes < 1440) {
+                            const hours = Math.floor(diffMinutes / 60);
+                            callback(`был(а) ${hours} ч. назад`);
+                        } else {
+                            const days = Math.floor(diffMinutes / 1440);
+                            callback(`был(а) ${days} д. назад`);
+                        }
+                    }
+                } else {
+                    callback('не в сети');
+                }
+            });
+        }
 
         // Генерация цифровой капчи
         function generateCaptcha() {
@@ -1162,6 +1206,7 @@
                 showApp();
                 showNotification('Успешный вход!');
                 listenForNotifications();
+                updateUserStatus(true);
                 
             }).catch(error => {
                 console.error('Ошибка входа:', error);
@@ -1241,6 +1286,19 @@
                 loadContacts();
                 console.log('Приложение полностью загружено');
             }, 100);
+        }
+
+        // Показать вид контактов
+        function showContactsView() {
+            document.getElementById('appContainer').classList.remove('chat-view');
+            document.getElementById('appContainer').classList.add('contacts-view');
+            currentChatUser = null;
+        }
+
+        // Показать вид чата
+        function showChatView() {
+            document.getElementById('appContainer').classList.remove('contacts-view');
+            document.getElementById('appContainer').classList.add('chat-view');
         }
 
         // Улучшенные уведомления
@@ -1341,11 +1399,20 @@
             contacts.forEach(contact => {
                 const contactElement = document.createElement('div');
                 contactElement.className = 'contact-item';
+                
+                // Получаем статус пользователя
+                getUserStatus(contact.username, (status) => {
+                    const statusElement = contactElement.querySelector('.last-message');
+                    if (statusElement) {
+                        statusElement.textContent = status;
+                    }
+                });
+                
                 contactElement.innerHTML = `
                     <div class="contact-avatar" onclick="showUserProfile('${contact.username}')">${contact.username.charAt(0)}</div>
                     <div class="contact-info">
                         <div class="contact-name">${contact.username}</div>
-                        <div class="last-message">${contact.status || 'В сети'}</div>
+                        <div class="last-message">загрузка...</div>
                     </div>
                 `;
                 contactElement.onclick = () => openChat(contact.username);
@@ -1374,7 +1441,13 @@
             document.getElementById('currentChatName').textContent = contactUsername;
             document.getElementById('currentChatAvatar').textContent = contactUsername.charAt(0);
             
+            // Обновляем статус в заголовке чата
+            getUserStatus(contactUsername, (status) => {
+                document.getElementById('currentChatStatus').textContent = status;
+            });
+            
             loadMessages(contactUsername);
+            showChatView();
         }
 
         // Загрузка сообщений
@@ -1473,29 +1546,11 @@
             }
         }
 
-        // Мобильное меню (три точки)
-        function toggleMobileMenu() {
-            const mobileMenu = document.getElementById('mobileDropdownMenu');
-            mobileMenu.classList.toggle('active');
-        }
-
         // Переключение сайдбара на мобильных
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('active');
         }
-
-        // Закрыть мобильное меню при клике вне его
-        document.addEventListener('click', function(event) {
-            const mobileMenu = document.getElementById('mobileDropdownMenu');
-            const menuButton = document.querySelector('.mobile-menu-dots');
-            
-            if (mobileMenu && mobileMenu.classList.contains('active') && 
-                !mobileMenu.contains(event.target) && 
-                event.target !== menuButton) {
-                mobileMenu.classList.remove('active');
-            }
-        });
 
         // Модальные окна
         function showModal(modalId) {
@@ -1736,6 +1791,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM загружен, инициализируем капчу...');
             updateCaptchas();
+        });
+
+        // Обновление статуса при закрытии/открытии вкладки
+        window.addEventListener('beforeunload', function() {
+            updateUserStatus(false);
+        });
+
+        window.addEventListener('focus', function() {
+            if (currentUser) {
+                updateUserStatus(true);
+            }
         });
 
         // Добавляем обработчик ошибок
